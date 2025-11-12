@@ -1,167 +1,55 @@
-# Show App
-
-A full-stack application with React frontend, Node.js backend, Prisma ORM, Neon DB, and JWT authentication with Apple-inspired UI.
-
-## Tech Stack
-
-- **Frontend**: React, Tailwind CSS, Vite, React Router
-- **Backend**: Node.js, Express
-- **Database**: PostgreSQL (Neon DB)
-- **ORM**: Prisma
-- **Authentication**: JWT tokens
-- **UI**: Apple-inspired minimalist design
-
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or pnpm
-- Neon DB account (or any PostgreSQL database)
-
-### 1. Install Dependencies
-
-```bash
-npm run install-all
-```
-
-Or install manually:
-
-```bash
-# Root
-npm install
-
-# Backend
-cd backend
-npm install
-
-# Frontend
-cd ../frontend
-npm install
-```
-
-### 2. Database Setup
-
-1. Create a Neon DB account at [neon.tech](https://neon.tech)
-2. Create a new database project
-3. Copy your connection string
-4. Update `backend/.env` with your database URL:
-
-```env
-DATABASE_URL="postgresql://user:password@host:5432/database?sslmode=require"
-JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
-PORT=5000
-```
-
-### 3. Initialize Database
-
-```bash
-cd backend
-npm run prisma:generate
-npm run prisma:migrate
-```
-
-### 4. Run the Application
-
-```bash
-# From root directory
-npm run dev
-```
-
-This will start:
-- Backend server on `http://localhost:5000`
-- Frontend dev server on `http://localhost:3000`
-
-Or run separately:
-
-```bash
-# Backend
-npm run server
-
-# Frontend (in another terminal)
-npm run client
-```
-
-## Project Structure
-
-```
-show/
-├── backend/
-│   ├── middleware/
-│   │   └── auth.js          # JWT authentication middleware
-│   ├── routes/
-│   │   ├── auth.js          # Authentication routes (login, register)
-│   │   └── protected.js     # Protected routes
-│   ├── utils/
-│   │   └── database.js      # Prisma client instance
-│   ├── prisma/
-│   │   └── schema.prisma    # Database schema
-│   ├── server.js            # Express server
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── context/         # Auth context
-│   │   ├── pages/           # Page components
-│   │   ├── App.jsx          # Main app component
-│   │   └── main.jsx         # Entry point
-│   ├── package.json
-│   └── vite.config.js
-└── package.json
-```
-
-## API Endpoints
-
-### Authentication
-
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user (requires token)
-
-### Protected Routes
-
-- `GET /api/protected/dashboard` - Protected dashboard route (requires token)
-
-## Environment Variables
-
-### Backend (.env)
-
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - Secret key for JWT tokens
-- `PORT` - Server port (default: 5000)
-
-## Features
-
-- ✅ User registration and login
-- ✅ JWT token authentication
-- ✅ Protected routes
-- ✅ Apple-inspired UI design
-- ✅ Responsive design
-- ✅ Password hashing with bcrypt
-- ✅ Prisma ORM with PostgreSQL
-
-## Development
-
-### Database Migrations
-
-```bash
-cd backend
-npm run prisma:migrate      # Create migration
-npm run prisma:studio       # Open Prisma Studio
-npm run prisma:generate     # Generate Prisma Client
-```
-
-### Build for Production
-
-```bash
-cd frontend
-npm run build
-```
-
-The production build will be in the `frontend/dist` directory.
-
-## License
-
-ISC
-
-# capstone
+Project Overview
+ChatHere is a full-stack, real-time chat application that enables users to connect instantly
+through private and group conversations. Designed with an intuitive and modern interface,
+ChatHere allows users to send messages, share media, and stay connected in real time.
+It is built using the MERN stack (MongoDB, Express.js, React.js, Node.js) combined with
+Socket.IO for instant communication. The project aims to demonstrate advanced full-stack
+concepts such as authentication, CRUD operations, real-time data synchronization, and
+responsive UI design.
+Key Features
+Backend
+● Authentication & Authorization
+○ Secure user signup and login using JWT (JSON Web Tokens).
+○ Password hashing with bcrypt for user data protection.
+○ Role-based access control (User / Admin).
+● CRUD Operations
+○ Create, Read, Update, Delete chats and messages.
+○ Manage user profiles and group settings.
+● Real-Time Communication
+○ Built with Socket.IO for instant messaging.
+○ Typing indicators, read receipts, and online/offline status.
+○ Group chat creation with multiple participants.
+● Filtering, Searching, Sorting, Pagination
+○ Search messages and users by keywords.
+○ Filter chats by date, unread status, or participants.
+○ Paginated chat history for performance optimization.
+● Hosting
+○ Backend deployed on Render or AWS EC2.
+○ API documentation via Swagger UI.
+Database
+● Database Type: Non-relational (MongoDB)
+● Schema Design:
+○ Collections: Users, Messages, Chats, Groups.
+○ Relationships maintained via Mongoose (user ↔ chat ↔ messages).
+● Hosting: MongoDB Atlas Cloud Database
+Frontend
+● Routing:
+○ Pages: Login, Register, Chat List, Chat Window, Profile, Settings.
+○ Handled using React Router.
+● Dynamic Data Fetching:
+○ Uses Axios and Socket.IO client for real-time updates.
+○ Live chat synchronization without page refresh.
+● UI/UX Features:
+○ Fully responsive, modern interface using Tailwind CSS.
+○ Dark/light theme toggle.
+○ Chat bubbles, avatars, and message timestamps.
+○ Smooth animations and transitions for better UX.
+● Hosting:
+○ Frontend deployed on Vercel or Netlify.
+Tech Stack
+Layer Technology
+Frontend React.js, Tailwind CSS, React Router, Axios, Socket.IO Client
+Backend Node.js, Express.js, Socket.IO, JWT, bcrypt, Mongoose
+Database MongoDB (hosted on MongoDB Atlas)
+Hosting Vercel (Frontend), Render (Backend)
+Version Control GitHub
