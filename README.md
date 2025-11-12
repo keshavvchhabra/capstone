@@ -6,6 +6,10 @@ It is built using the MERN stack (MongoDB, Express.js, React.js, Node.js) combin
 Socket.IO for instant communication. The project aims to demonstrate advanced full-stack
 concepts such as authentication, CRUD operations, real-time data synchronization, and
 responsive UI design.
+
+
+
+
 Key Features
 Backend
 ● Authentication & Authorization
@@ -26,12 +30,21 @@ Backend
 ● Hosting
 ○ Backend deployed on Render or AWS EC2.
 ○ API documentation via Swagger UI.
+
+
+
+
+
 Database
 ● Database Type: Non-relational (MongoDB)
 ● Schema Design:
 ○ Collections: Users, Messages, Chats, Groups.
 ○ Relationships maintained via Mongoose (user ↔ chat ↔ messages).
 ● Hosting: MongoDB Atlas Cloud Database
+
+
+
+
 Frontend
 ● Routing:
 ○ Pages: Login, Register, Chat List, Chat Window, Profile, Settings.
@@ -44,6 +57,10 @@ Frontend
 ○ Dark/light theme toggle.
 ○ Chat bubbles, avatars, and message timestamps.
 ○ Smooth animations and transitions for better UX.
+
+
+
+
 ● Hosting:
 ○ Frontend deployed on Vercel or Netlify.
 Tech Stack
