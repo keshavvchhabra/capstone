@@ -71,6 +71,6 @@ Database MongoDB (hosted on MongoDB Atlas)
 Hosting Vercel (Frontend), Render (Backend)
 Version Control GitHub
 
-hosted link - capstone-git-main-keshavvchhabras-projects.vercel.app
+hosted link - https://capstone-439ppnln0-keshavvchhabras-projects.vercel.app/login
 neon - https://console.neon.tech/app/projects/red-union-62973307/branches/br-still-brook-adzed91f/tables?database=neondb
 
