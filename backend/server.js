@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const protectedRoutes = require('./routes/protected');
 const chatsRoutes = require('./routes/chats');
 const usersRoutes = require('./routes/users');
+const profileRoutes = require('./routes/profile');
 
 dotenv.config();
 
@@ -153,6 +154,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/protected', protectedRoutes);
 app.use('/api/chats', chatsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

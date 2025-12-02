@@ -5,7 +5,7 @@ import ConversationList from '../components/chat/ConversationList'
 import MessageBubble from '../components/chat/MessageBubble'
 import NewChatModal from '../components/chat/NewChatModal'
 import ProfileModal from '../components/ProfileModal'
-import { fetchConversations, fetchMessages } from '../api/chat'
+import { fetchConversations, fetchMessages, deleteMessage } from '../api/chat'
 import { useAuth } from '../context/AuthContext'
 
 const Dashboard = () => {
@@ -198,6 +198,35 @@ const Dashboard = () => {
     socket.on('message:receive', handleReceivedMessage)
     socket.on('message:new', handleReceivedMessage)
 
+    // Handle deleted messages from other clients
+    socket.on('message:deleted', (payload) => {
+      const { conversationId, messageId, lastMessage, updatedAt } = payload
+      const currentActive = activeConversationRef.current
+
+      // Remove from current message list if we're viewing this conversation
+      if (currentActive && currentActive.id === conversationId) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+
+        setActiveConversation((prev) => {
+          if (!prev || prev.id !== conversationId) return prev
+          return {
+            ...prev,
+            lastMessage: lastMessage || null,
+            updatedAt: updatedAt || prev.updatedAt,
+          }
+        })
+      }
+
+      // Update conversation list preview
+      const updateFn = updateConversationInListRef.current
+      if (updateFn) {
+        updateFn(conversationId, {
+          lastMessage: lastMessage || null,
+          updatedAt: updatedAt || new Date().toISOString(),
+        })
+      }
+    })
+
     socket.on('conversation:updated', () => {
       // Conversation updated, but we don't need to reload
     })
@@ -320,6 +349,30 @@ const Dashboard = () => {
     setActiveConversation(conversation)
     setMessages([])
     setShowNewChatModal(false)
+  }
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!activeConversation?.id) return
+
+    const conversationId = activeConversation.id
+
+    // Optimistically remove the message from the UI
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+
+    try {
+      await deleteMessage(conversationId, messageId)
+      // Server will broadcast message:deleted to sync other clients and update sidebar
+    } catch (err) {
+      // On error, we can't easily restore the exact message here without extra state,
+      // so for now we just show an error and rely on a reload if needed.
+      console.error('Failed to delete message', err)
+      setError(
+        err.response?.data?.error ||
+          'Unable to delete message. Please try again.'
+      )
+      // Optionally, reload messages for this conversation to restore state
+      loadMessages(conversationId, { replace: true })
+    }
   }
 
   // Group messages by date for date separators
@@ -564,11 +617,17 @@ const Dashboard = () => {
                         </div>
                       )
                     }
+                    const isOwn = item.message.sender.id === user?.id
                     return (
                       <MessageBubble
                         key={item.message.id}
                         message={item.message}
-                        isOwn={item.message.sender.id === user?.id}
+                        isOwn={isOwn}
+                        onDelete={
+                          isOwn
+                            ? () => handleDeleteMessage(item.message.id)
+                            : undefined
+                        }
                       />
                     )
                   })}

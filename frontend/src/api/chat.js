@@ -11,6 +11,9 @@ export const fetchMessages = (conversationId, params = {}) =>
 export const postMessage = (conversationId, body) =>
   api.post(`/api/chats/${conversationId}/messages`, { body })
 
+export const deleteMessage = (conversationId, messageId) =>
+  api.delete(`/api/chats/${conversationId}/messages/${messageId}`)
+
 export const searchPeople = (query) =>
   api.get('/api/users/search', { params: { query } })
 

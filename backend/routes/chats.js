@@ -281,6 +281,109 @@ router.post('/:conversationId/messages', async (req, res) => {
   }
 });
 
+// Delete a message (only allowed for the user who sent it)
+router.delete('/:conversationId/messages/:messageId', async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+    const userId = req.user.userId;
+
+    // Ensure user is part of the conversation
+    const membership = await prisma.conversationParticipant.findFirst({
+      where: {
+        conversationId,
+        userId,
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Find the message and ensure it belongs to this conversation and user
+    const message = await prisma.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId,
+      },
+      select: {
+        id: true,
+        senderId: true,
+      },
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    if (message.senderId !== userId) {
+      return res.status(403).json({ error: 'You can only delete your own messages' });
+    }
+
+    // Delete the message
+    await prisma.message.delete({
+      where: {
+        id: messageId,
+      },
+    });
+
+    // Find the new last message (if any) to update conversation preview
+    const lastMessage = await prisma.message.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        sender: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+
+    // Update conversation's updatedAt based on last remaining message (or now if none)
+    const updatedConversation = await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: lastMessage ? lastMessage.createdAt : new Date() },
+      include: {
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      const payload = {
+        conversationId,
+        messageId,
+        lastMessage,
+        updatedAt: updatedConversation.updatedAt,
+      };
+
+      // Notify all clients in the conversation that a message was deleted
+      io.to(`conversation:${conversationId}`).emit('message:deleted', payload);
+
+      // Also notify individual user rooms and update their conversation lists
+      updatedConversation.participants.forEach((participant) => {
+        io.to(`user:${participant.userId}`).emit('message:deleted', payload);
+        io.to(`user:${participant.userId}`).emit('conversation:updated', conversationId);
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete message error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;
 
 
