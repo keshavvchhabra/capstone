@@ -1,9 +1,43 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const prisma = require('../utils/database');
 
 const router = express.Router();
+
+// Password hashing helpers using Node's built-in crypto
+const HASH_ALGO = 'sha256';
+const HASH_ITERATIONS = 100_000;
+const HASH_KEY_LENGTH = 64;
+const SALT_BYTES = 16;
+
+const hashPassword = (password) => {
+  const salt = crypto.randomBytes(SALT_BYTES).toString('hex');
+  const derivedKey = crypto
+    .pbkdf2Sync(password, salt, HASH_ITERATIONS, HASH_KEY_LENGTH, HASH_ALGO)
+    .toString('hex');
+  // Store as salt:iterations:hash
+  return `${salt}:${HASH_ITERATIONS}:${derivedKey}`;
+};
+
+const verifyPassword = (password, stored) => {
+  if (!stored || typeof stored !== 'string' || !stored.includes(':')) {
+    return false;
+  }
+
+  const [salt, iterationsStr, storedHash] = stored.split(':');
+  const iterations = parseInt(iterationsStr, 10) || HASH_ITERATIONS;
+
+  const derivedKey = crypto
+    .pbkdf2Sync(password, salt, iterations, HASH_KEY_LENGTH, HASH_ALGO)
+    .toString('hex');
+
+  // Use constant-time comparison to avoid timing attacks
+  const hashBuf = Buffer.from(storedHash, 'hex');
+  const derivedBuf = Buffer.from(derivedKey, 'hex');
+  if (hashBuf.length !== derivedBuf.length) return false;
+  return crypto.timingSafeEqual(hashBuf, derivedBuf);
+};
 
 // Register
 router.post('/register', async (req, res) => {
@@ -24,8 +58,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password using crypto
+    const hashedPassword = hashPassword(password);
 
     // Create user
     const user = await prisma.user.create({
@@ -80,8 +114,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    // Verify password using crypto-based hash
+    const isValidPassword = verifyPassword(password, user.password);
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
