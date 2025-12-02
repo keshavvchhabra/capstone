@@ -1,0 +1,16 @@
+import api from '../config/axios'
+
+export const fetchConversations = () => api.get('/api/chats')
+
+export const createConversation = (payload) =>
+  api.post('/api/chats', payload)
+
+export const fetchMessages = (conversationId, params = {}) =>
+  api.get(`/api/chats/${conversationId}/messages`, { params })
+
+export const postMessage = (conversationId, body) =>
+  api.post(`/api/chats/${conversationId}/messages`, { body })
+
+export const searchPeople = (query) =>
+  api.get('/api/users/search', { params: { query } })
+

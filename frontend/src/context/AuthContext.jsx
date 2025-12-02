@@ -5,8 +5,17 @@ const AuthContext = createContext()
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
+  // Be defensive during development / hot reload so the app
+  // doesn't crash if the provider tree is temporarily remounted.
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    return {
+      user: null,
+      loading: true,
+      login: async () => ({ success: false, error: 'Auth not ready' }),
+      register: async () => ({ success: false, error: 'Auth not ready' }),
+      logout: () => {},
+      isAuthenticated: false,
+    }
   }
   return context
 }
@@ -78,12 +87,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token')
   }
 
+  const updateUser = (userData) => {
+    setUser(userData)
+  }
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
+    updateUser,
     isAuthenticated: !!user
   }
 

@@ -38,6 +38,7 @@ router.post('/register', async (req, res) => {
         id: true,
         email: true,
         name: true,
+        profilePicture: true,
         createdAt: true
       }
     });
@@ -99,6 +100,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        profilePicture: user.profilePicture,
         createdAt: user.createdAt
       },
       token
@@ -126,6 +128,7 @@ router.get('/me', async (req, res) => {
         id: true,
         email: true,
         name: true,
+        profilePicture: true,
         createdAt: true
       }
     });

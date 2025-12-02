@@ -8,11 +8,48 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String?
+  profilePicture String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  conversations ConversationParticipant[]
+  messages      Message[]
+}
+
+model Conversation {
+  id           String                     @id @default(cuid())
+  title        String?
+  isGroup      Boolean                    @default(false)
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String        @id @default(cuid())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  joinedAt       DateTime      @default(now())
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId       String
+  body           String
+  createdAt      DateTime      @default(now())
+
+  @@index([conversationId])
+  @@index([senderId])
 }
 

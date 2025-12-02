@@ -1,0 +1,202 @@
+---
+alwaysApply: false
+---
+
+## Chat App UI Design Overview
+
+This document captures the visual design language and color system inspired by the reference chat UI. Use it as the source of truth when styling components in this project.
+
+### Layout Structure
+
+- **Three‑column layout**
+  - **Left sidebar**: app navigation, primary entry point to "Messages".
+  - **Center column**: conversation list at the top, main chat thread below.
+  - **Right sidebar**: group / user info, description, media, files and settings.
+- **Top bars**
+  - Global app title and actions in the left/top.
+  - Conversation header in the center with avatar, name, presence, and quick actions.
+- **Spacing**
+  - Generous outer padding (24–32px) around the content.
+  - 16–24px gaps between major sections; 8–12px between related controls.
+  - Rounded cards and input fields sitting on a very light background.
+
+### General Visual Style
+
+- **Overall feel**
+  - Clean, bright, modern SaaS UI.
+  - Strong primary accent (blue) on a very light, slightly warm gray background.
+  - Soft shadows and large corner radii to create a “card” feel.
+- **Corners & radii**
+  - Large radii for main cards: 18–24px.
+  - Medium radii for buttons and inputs: 9999px (pill) or 10–12px.
+  - Avatars are fully circular.
+- **Shadows**
+  - Subtle, soft drop shadows for active cards and floating elements.
+  - Avoid harsh, high‑contrast shadows; keep blur radius high and opacity low.
+
+## Color System
+
+> Exact hex values here are approximations; keep relative contrast and roles consistent.
+
+### Neutrals (Background & Surfaces)
+
+- **Page background**
+  - Very light neutral: `#F5F7FB` (cool off‑white).
+- **Cards / surfaces**
+  - Default surface: `#FFFFFF`.
+  - Subtle secondary surface / separators: `#F0F3F8`.
+- **Borders & dividers**
+  - Light gray border: `#E2E8F0`.
+  - Hairline dividers (1px): `#E5E9F2`.
+
+### Primary Accent
+
+- **Primary brand / action blue**
+  - Main accent: `#2563EB` (or similar bright medium blue).
+  - Hover: `#1D4ED8`.
+  - Very light tint for backgrounds: `#E5F0FF`.
+- **Usage**
+  - Active navigation icon and active chat item indicator.
+  - Primary buttons (send, main actions).
+  - Highlights in charts / polls within the conversation.
+
+### Text Colors
+
+- **Primary text**
+  - Dark slate: `#111827` or `#1F2933` for titles and main labels.
+- **Secondary text**
+  - Muted gray: `#6B7280` or `#9CA3AF` for meta info (timestamps, subtitles).
+- **Disabled / placeholder**
+  - Light gray: `#CBD5E1`.
+- **Links / mentions**
+  - Use the primary blue, underlined or bolded when appropriate.
+
+### Status & Semantic Colors
+
+- **Online status**
+  - Online dot: `#22C55E` (vivid green) with white border on avatars.
+- **Notifications / badges**
+  - Badge background (error / unread): `#EF4444`.
+  - Badge text: `#FFFFFF`.
+- **Message states (optional)**
+  - Read tick marks: subtle blue or gray (`#60A5FA` / `#9CA3AF`).
+  - Typing indicator: softer blue tint (`#DBEAFE`).
+
+### Avatars
+
+- **Backgrounds**
+  - Use a palette of soft but saturated colors per user (examples):
+    - Coral: `#F97373`
+    - Orange: `#FB923C`
+    - Yellow: `#FBBF24`
+    - Green: `#22C55E`
+    - Teal: `#14B8A6`
+    - Indigo: `#6366F1`
+- **Border**
+  - Thin white border: `#FFFFFF` to make avatars pop on colored or white backgrounds.
+
+## Component‑Level Design
+
+### Left Sidebar (Navigation)
+
+- **Background**
+  - Solid white or very light gray (`#F9FAFB`).
+- **Navigation items**
+  - Icons in a vertical stack with rounded pill highlight for the active route.
+  - Active nav item:
+    - Background: primary blue.
+    - Icon: white.
+  - Inactive items:
+    - Icon: muted gray (`#9CA3AF`), hover background: `#E5E7EB`.
+
+### Conversation List Panel
+
+- **Header**
+  - Title (e.g., “Messages”) in blue or dark gray, bold and ~20–24px.
+  - Small, light subtitle or count aligned to the right (e.g., `1 active`) in secondary text color.
+- **Search**
+  - Full‑width rounded input:
+    - Background: `#F3F4F6`.
+    - Border: transparent or `#E5E7EB`.
+    - Placeholder: light gray.
+    - Icon (search) in muted gray.
+- **Conversation item**
+  - Container:
+    - Rounded card with 18–24px radius.
+    - Default background: `#FFFFFF` on hover or `#F9FAFB`.
+    - Active background: `#FFFFFF` with a light blue left border or pill effect.
+    - Subtle shadow when active.
+  - Layout:
+    - Left: avatar circle (or stacked avatars for groups).
+    - Center: conversation name + last message preview (two lines).
+    - Right: timestamp and optional unread badge.
+  - Text:
+    - Name: bold, slightly larger than body text.
+    - Preview: secondary gray, truncated with ellipsis.
+  - Badges:
+    - Small red circular badge with white text for unread count.
+
+### Chat Thread (Center)
+
+- **Background**
+  - Slightly tinted panel (`#F5F7FB`) distinct from sidebars.
+- **Message bubbles**
+  - Own messages (right aligned):
+    - Background: primary blue (`#2563EB`).
+    - Text: white.
+    - Shape: rounded bubble with larger radius on outer corners.
+  - Others’ messages (left aligned):
+    - Background: white.
+    - Text: dark gray.
+  - Spacing:
+    - 4–8px between bubbles, grouped by sender.
+    - Timestamps in small muted gray below or inline.
+
+### Composer (Bottom Input)
+
+- **Container**
+  - White pill or rounded rectangle sitting on a very light background.
+  - Slight shadow to make it float above the chat area.
+- **Input**
+  - Transparent background inside the pill, no heavy borders.
+  - Placeholder in light gray (“Type message”).
+- **Actions**
+  - Icon buttons (attach, emoji, send) in circular blue or white buttons:
+    - Icon color: primary blue.
+    - Active / primary action (Send): filled blue with white icon.
+
+### Right Sidebar (Group / User Info)
+
+- **Header**
+  - Avatar + name + member count centered.
+  - Inline presence text (e.g., “4 Online”) in green or secondary gray.
+- **Sections**
+  - Titled blocks (Description, Media, Files, Settings) with subtle dividers.
+  - Use smaller card rows for media, file previews, toggles, etc.
+  - Toggles:
+    - Blue when active, light gray when inactive.
+
+## Typography
+
+- **Font family**
+  - System UI or something similar to San Francisco / Inter.
+- **Scale (approximate)**
+  - Page / section titles: 20–24px, semibold.
+  - Conversation titles: 15–17px, semibold.
+  - Body text: 13–14px, regular.
+  - Meta / timestamp: 11–12px, medium or regular, uppercase or small caps optional.
+
+## Interaction & States
+
+- **Hover**
+  - Slight background lightening and shadow on cards.
+  - Icons darken slightly on hover.
+- **Active / focus**
+  - Clear visual emphasis (border, shadow, or blue accent) on:
+    - Selected conversation.
+    - Focused input fields.
+- **Feedback**
+  - Use subtle transition durations (150–200ms) for hover/press animations.
+  - Avoid sudden layout jumps; prefer opacity and shadow changes.
+
+
