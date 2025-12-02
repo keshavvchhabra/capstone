@@ -114,6 +114,8 @@ io.on('connection', (socket) => {
         conversationId,
       };
 
+      console.log(message)
+
       io.to(`conversation:${conversationId}`).emit('message:new', payload);
 
       updatedConversation.participants.forEach((participant) => {
@@ -142,7 +144,7 @@ app.set('io', io);
 // Middleware
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );

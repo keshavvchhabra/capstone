@@ -40,26 +40,10 @@ const ConversationList = memo(({
   conversations,
   activeConversationId,
   onSelect,
-  searchTerm,
+  // searchTerm is now handled in the backend; we keep the prop for compatibility
   currentUserId,
 }) => {
-  const filtered = searchTerm
-    ? conversations.filter((conversation) => {
-        const safeSearch = searchTerm.trim().toLowerCase()
-        const haystack = [
-          conversation.title,
-          ...conversation.participants.map(
-            (participant) => participant.name || participant.email
-          ),
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
-        return haystack.includes(safeSearch)
-      })
-    : conversations
-
-  if (!filtered.length) {
+  if (!conversations.length) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-[#54656F]">
         <div className="text-3xl">💬</div>
@@ -72,8 +56,8 @@ const ConversationList = memo(({
   }
 
   // Separate pinned and regular conversations
-  const pinnedConversations = filtered.filter(c => c.isPinned) // TODO: Add isPinned to schema
-  const regularConversations = filtered.filter(c => !c.isPinned)
+  const pinnedConversations = conversations.filter(c => c.isPinned) // TODO: Add isPinned to schema
+  const regularConversations = conversations.filter(c => !c.isPinned)
 
   return (
     <div>

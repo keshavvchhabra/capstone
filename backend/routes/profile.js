@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
 const prisma = require('../utils/database');
+const { hashPassword, verifyPassword } = require('../utils/password');
 
 const router = express.Router();
 
@@ -171,6 +172,55 @@ router.delete('/me/picture', async (req, res) => {
     });
   } catch (error) {
     console.error('Delete profile picture error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update password: requires current password, new password, and confirmation
+router.put('/me/password', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ error: 'New password must be at least 8 characters long' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        password: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const isValidCurrent = verifyPassword(currentPassword, user.password);
+    if (!isValidCurrent) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    const newHashedPassword = hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: newHashedPassword,
+      },
+    });
+
+    return res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Update password error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

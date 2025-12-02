@@ -14,21 +14,29 @@ const getInitials = (name = '', email = '') => {
 const ProfileModal = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuth()
   const [name, setName] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmittingProfile, setIsSubmittingProfile] = useState(false)
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   useEffect(() => {
     if (isOpen && user) {
       setName(user.name || '')
       setError('')
       setSuccess('')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
     }
   }, [isOpen, user])
 
-  const handleSubmit = async (event) => {
+  const handleProfileSubmit = async (event) => {
     event.preventDefault()
-    setIsSubmitting(true)
+    setIsSubmittingProfile(true)
     setError('')
     setSuccess('')
 
@@ -56,7 +64,48 @@ const ProfileModal = ({ isOpen, onClose }) => {
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update profile')
     } finally {
-      setIsSubmitting(false)
+      setIsSubmittingProfile(false)
+    }
+  }
+
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault()
+    setIsSubmittingPassword(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        setError('Please fill in all password fields')
+        setIsSubmittingPassword(false)
+        return
+      }
+
+      if (newPassword.length < 8) {
+        setError('New password must be at least 8 characters long')
+        setIsSubmittingPassword(false)
+        return
+      }
+
+      if (newPassword !== confirmPassword) {
+        setError('New password and confirmation do not match')
+        setIsSubmittingPassword(false)
+        return
+      }
+
+      await api.put('/api/profile/me/password', {
+        currentPassword,
+        newPassword,
+      })
+
+      setSuccess('Password updated successfully')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update password')
+    } finally {
+      setIsSubmittingPassword(false)
     }
   }
 
@@ -81,7 +130,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6">
+        <form onSubmit={handleProfileSubmit} className="space-y-6 px-6 py-6">
           {/* Profile Avatar (read-only) */}
           <div className="flex flex-col items-center">
             <div className="relative">
@@ -129,18 +178,6 @@ const ProfileModal = ({ isOpen, onClose }) => {
             />
           </div>
 
-          {/* Error/Success Messages */}
-          {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              {success}
-            </div>
-          )}
-
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
@@ -152,13 +189,77 @@ const ProfileModal = ({ isOpen, onClose }) => {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmittingProfile}
               className="rounded-full px-6 py-2 text-sm font-medium bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmittingProfile ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
+
+        {/* Change Password Section */}
+        <div className="border-t border-gray-100 px-6 py-4">
+          <h2 className="text-sm font-semibold text-gray-800 mb-3">Change password</h2>
+          <form onSubmit={handlePasswordSubmit} className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Current password
+              </label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  New password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Confirm new password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:border-transparent text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-700">
+                {success}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end pt-1">
+              <button
+                type="submit"
+                disabled={isSubmittingPassword}
+                className="rounded-full px-4 py-2 text-xs font-medium bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSubmittingPassword ? 'Updating...' : 'Update password'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

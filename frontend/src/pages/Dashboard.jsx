@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [conversations, setConversations] = useState([])
   const [activeConversation, setActiveConversation] = useState(null)
   const [conversationSearch, setConversationSearch] = useState('')
+  const [conversationDateFilter, setConversationDateFilter] = useState('all')
   const [messages, setMessages] = useState([])
   const [messagesCursor, setMessagesCursor] = useState(null)
   const [isLoadingConversations, setIsLoadingConversations] = useState(true)
@@ -34,11 +35,36 @@ const Dashboard = () => {
     navigate('/login')
   }
 
-  // Load conversations only on mount - never reload on message updates
-  const loadConversations = useCallback(async () => {
+  // Load conversations, optionally with a search term and date filter handled in the backend
+  const loadConversations = useCallback(async (searchTerm, dateFilter) => {
     try {
       setIsLoadingConversations(true)
-      const response = await fetchConversations()
+      const params = {}
+      if (searchTerm && searchTerm.trim()) {
+        params.search = searchTerm.trim()
+      }
+      // Map dateFilter to a createdFrom / createdTo window
+      if (dateFilter && dateFilter !== 'all') {
+        const now = new Date()
+        let fromDate = null
+
+        if (dateFilter === 'today') {
+          fromDate = new Date()
+          fromDate.setHours(0, 0, 0, 0)
+        } else if (dateFilter === '7d') {
+          fromDate = new Date()
+          fromDate.setDate(fromDate.getDate() - 7)
+        } else if (dateFilter === '30d') {
+          fromDate = new Date()
+          fromDate.setDate(fromDate.getDate() - 30)
+        }
+
+        if (fromDate) {
+          params.createdFrom = fromDate.toISOString()
+          params.createdTo = now.toISOString()
+        }
+      }
+      const response = await fetchConversations(params)
       const sorted = response.data.conversations.sort(
         (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
       )
@@ -106,10 +132,22 @@ const Dashboard = () => {
     []
   )
 
+  // Initial load
   useEffect(() => {
-    loadConversations()
+    loadConversations(undefined, conversationDateFilter)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Server-side conversation search & date filter (debounced)
+  useEffect(() => {
+    const trimmed = conversationSearch.trim()
+
+    const id = setTimeout(() => {
+      loadConversations(trimmed || undefined, conversationDateFilter)
+    }, 250)
+
+    return () => clearTimeout(id)
+  }, [conversationSearch, conversationDateFilter, loadConversations])
 
   useEffect(() => {
     activeConversationRef.current = activeConversation
@@ -500,19 +538,31 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Search */}
+        {/* Search + Date Filter */}
         <div className="px-4 py-2 bg-white border-b border-gray-200">
-          <div className="relative">
-            <input
-              type="text"
-              value={conversationSearch}
-              onChange={(e) => setConversationSearch(e.target.value)}
-              placeholder="Search or start new chat"
-              className="w-full pl-10 pr-4 py-2 bg-[#F0F2F5] rounded-lg border-0 focus:outline-none focus:ring-0 text-sm"
-            />
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#54656F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={conversationSearch}
+                onChange={(e) => setConversationSearch(e.target.value)}
+                placeholder="Search or start new chat"
+                className="w-full pl-10 pr-4 py-2 bg-[#F0F2F5] rounded-lg border-0 focus:outline-none focus:ring-0 text-sm"
+              />
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#54656F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <select
+              value={conversationDateFilter}
+              onChange={(e) => setConversationDateFilter(e.target.value)}
+              className="px-2 py-2 bg-[#F0F2F5] rounded-lg border-0 text-xs text-[#54656F] focus:outline-none focus:ring-0"
+            >
+              <option value="all">All</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+            </select>
           </div>
         </div>
 

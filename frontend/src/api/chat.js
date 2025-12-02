@@ -1,6 +1,7 @@
 import api from '../config/axios'
 
-export const fetchConversations = () => api.get('/api/chats')
+export const fetchConversations = (params = {}) =>
+  api.get('/api/chats', { params })
 
 export const createConversation = (payload) =>
   api.post('/api/chats', payload)

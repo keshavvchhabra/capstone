@@ -59,17 +59,88 @@ const transformConversation = (conversation) => {
   };
 };
 
-// Get conversations for current user
+// Get conversations for current user, with optional search and date filters
 router.get('/', async (req, res) => {
   try {
-    const conversations = await prisma.conversation.findMany({
-      where: {
-        participants: {
-          some: {
-            userId: req.user.userId,
-          },
+    const { search, createdFrom, createdTo } = req.query;
+
+    const baseWhere = {
+      participants: {
+        some: {
+          userId: req.user.userId,
         },
       },
+    };
+
+    const andConditions = [];
+
+    // If a search term is provided, filter by conversation title or participant name/email
+    if (search && search.trim()) {
+      andConditions.push({
+        OR: [
+          {
+            title: {
+              contains: search.trim(),
+              mode: 'insensitive',
+            },
+          },
+          {
+            participants: {
+              some: {
+                user: {
+                  OR: [
+                    {
+                      name: {
+                        contains: search.trim(),
+                        mode: 'insensitive',
+                      },
+                    },
+                    {
+                      email: {
+                        contains: search.trim(),
+                        mode: 'insensitive',
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      });
+    }
+
+    // Optional date filter on conversation.createdAt
+    if (createdFrom || createdTo) {
+      const createdAtFilter = {};
+      if (createdFrom) {
+        const fromDate = new Date(createdFrom);
+        if (!isNaN(fromDate)) {
+          createdAtFilter.gte = fromDate;
+        }
+      }
+      if (createdTo) {
+        const toDate = new Date(createdTo);
+        if (!isNaN(toDate)) {
+          createdAtFilter.lte = toDate;
+        }
+      }
+      if (Object.keys(createdAtFilter).length > 0) {
+        andConditions.push({
+          createdAt: createdAtFilter,
+        });
+      }
+    }
+
+    const where =
+      andConditions.length > 0
+        ? {
+            AND: [baseWhere, ...andConditions],
+          }
+        : baseWhere;
+
+    const conversations = await prisma.conversation.findMany({
+      where,
       orderBy: { updatedAt: 'desc' },
       include: conversationInclude,
     });
