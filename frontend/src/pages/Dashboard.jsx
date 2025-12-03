@@ -320,7 +320,6 @@ const Dashboard = () => {
         id: user?.id,
         email: user?.email,
         name: user?.name,
-        profilePicture: user?.profilePicture,
       },
     }
     
@@ -455,14 +454,7 @@ const Dashboard = () => {
         {/* Sidebar Header */}
         <div className="h-[60px] px-4 flex items-center justify-between border-b border-gray-200 bg-[#F0F2F5]">
           <div className="flex items-center gap-3">
-            {user?.profilePicture ? (
-              <img
-                src={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${user.profilePicture}`}
-                alt={user.name || user.email}
-                className="w-10 h-10 rounded-full object-cover cursor-pointer"
-                onClick={() => setShowProfileModal(true)}
-              />
-            ) : (
+            {(
               <div
                 className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center font-semibold cursor-pointer"
                 onClick={() => setShowProfileModal(true)}
@@ -506,17 +498,9 @@ const Dashboard = () => {
               return (
                 <div key={conv.id} className="flex flex-col items-center gap-1 min-w-[60px]">
                   <div className="relative">
-                    {other?.profilePicture ? (
-                      <img
-                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${other.profilePicture}`}
-                        alt={other.name || other.email}
-                        className="w-14 h-14 rounded-full object-cover border-2 border-white"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center font-semibold border-2 border-white">
-                        {(other?.name || other?.email || 'U')[0].toUpperCase()}
-                      </div>
-                    )}
+                    <div className="w-14 h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center font-semibold border-2 border-white">
+                      {(other?.name || other?.email || 'U')[0].toUpperCase()}
+                    </div>
                     <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#25D366] rounded-full border-2 border-white"></div>
                   </div>
                   <span className="text-xs text-[#54656F] truncate w-full text-center">
@@ -598,13 +582,7 @@ const Dashboard = () => {
                 ) : (
                   (() => {
                     const other = activeConversation.participants.find(p => p.id !== user?.id)
-                    return other?.profilePicture ? (
-                      <img
-                        src={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${other.profilePicture}`}
-                        alt={other.name || other.email}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
+                    return (
                       <div className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center font-semibold">
                         {(other?.name || other?.email || 'U')[0].toUpperCase()}
                       </div>

@@ -110,9 +110,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
   }
 
   if (!isOpen) return null
-  const displayPicture = user?.profilePicture
-    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}${user.profilePicture}`
-    : null
+  const displayPicture = null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">

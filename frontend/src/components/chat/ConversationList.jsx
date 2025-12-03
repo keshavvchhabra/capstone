@@ -165,7 +165,6 @@ const ConversationListItem = memo(({ conversation, isActive, onSelect, currentUs
 
 const AvatarStack = memo(({ participants = [] }) => {
   const avatars = participants.slice(0, 1) // Show single avatar for now
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
 
   if (avatars.length === 0) {
     return (
@@ -178,23 +177,11 @@ const AvatarStack = memo(({ participants = [] }) => {
   return (
     <div className="relative shrink-0">
       {avatars.map((participant) => {
-        const profilePic = participant.profilePicture
-          ? `${API_URL}${participant.profilePicture}`
-          : null
-
         return (
           <div key={participant.id} className="w-12 h-12 rounded-full overflow-hidden">
-            {profilePic ? (
-              <img
-                src={profilePic}
-                alt={participant.name || participant.email}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-[#25D366] text-white flex items-center justify-center font-semibold">
-                {getInitials(participant.name, participant.email)}
-              </div>
-            )}
+            <div className="w-full h-full bg-[#25D366] text-white flex items-center justify-center font-semibold">
+              {getInitials(participant.name, participant.email)}
+            </div>
           </div>
         )
       })}

@@ -15,26 +15,13 @@ const MessageBubble = ({ message, isOwn, onDelete }) => {
     hour12: true
   }).replace(/\s(AM|PM)/i, ' $1').toUpperCase()
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001'
-  const profilePic = message.sender.profilePicture
-    ? `${API_URL}${message.sender.profilePicture}`
-    : null
-
   return (
     <div className={`flex items-end gap-2 mb-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
       {!isOwn && (
         <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
-          {profilePic ? (
-            <img
-              src={profilePic}
-              alt={message.sender.name || message.sender.email}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-[#25D366] text-white flex items-center justify-center text-xs font-semibold">
-              {getInitials(message.sender.name, message.sender.email)}
-            </div>
-          )}
+          <div className="w-full h-full bg-[#25D366] text-white flex items-center justify-center text-xs font-semibold">
+            {getInitials(message.sender.name, message.sender.email)}
+          </div>
         </div>
       )}
       <div className={`flex flex-col max-w-[65%] ${isOwn ? 'items-end' : 'items-start'}`}>
