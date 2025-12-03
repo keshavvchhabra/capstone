@@ -144,7 +144,7 @@ app.set('io', io);
 // Middleware
 app.use(
   cors({
-    origin: 'https://capstone-topaz-one.vercel.app/register',
+    origin: 'https://capstone-topaz-one.vercel.app',
     credentials: true,
   })
 );
