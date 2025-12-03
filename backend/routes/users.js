@@ -30,7 +30,6 @@ router.get('/search', async (req, res) => {
         id: true,
         email: true,
         name: true,
-        profilePicture: true,
         createdAt: true,
       },
       take: 10,
