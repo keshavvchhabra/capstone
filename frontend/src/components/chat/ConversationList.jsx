@@ -42,6 +42,7 @@ const ConversationList = memo(({
   onSelect,
   // searchTerm is now handled in the backend; we keep the prop for compatibility
   currentUserId,
+  onDeleteConversation,
 }) => {
   if (!conversations.length) {
     return (
@@ -70,6 +71,7 @@ const ConversationList = memo(({
               isActive={conversation.id === activeConversationId}
               onSelect={onSelect}
               currentUserId={currentUserId}
+              onDeleteConversation={onDeleteConversation}
             />
           ))}
         </ul>
@@ -94,6 +96,7 @@ const ConversationList = memo(({
           isActive={conversation.id === activeConversationId}
           onSelect={onSelect}
           currentUserId={currentUserId}
+          onDeleteConversation={onDeleteConversation}
         />
       ))}
       </ul>
@@ -101,7 +104,7 @@ const ConversationList = memo(({
   )
 })
 
-const ConversationListItem = memo(({ conversation, isActive, onSelect, currentUserId }) => {
+const ConversationListItem = memo(({ conversation, isActive, onSelect, currentUserId, onDeleteConversation }) => {
   const lastMessage = conversation.lastMessage
   const unreadCount = conversation.unreadCount || 0 // TODO: Add unreadCount to schema
   const isTyping = false // TODO: Add typing indicator from WebSocket
@@ -134,9 +137,32 @@ const ConversationListItem = memo(({ conversation, isActive, onSelect, currentUs
             }`}>
               {conversation.title || conversation.participants.find(p => p.id !== currentUserId)?.name || 'Chat'}
             </p>
-            <span className="text-xs text-[#667781] shrink-0 whitespace-nowrap">
-              {formatPreviewTime(conversation.updatedAt)}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-[#667781] whitespace-nowrap">
+                {formatPreviewTime(conversation.updatedAt)}
+              </span>
+              {onDeleteConversation && (
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    if (window.confirm('Delete this chat and all its messages?')) {
+                      onDeleteConversation(conversation)
+                    }
+                  }}
+                  className="p-1 rounded-full hover:bg-gray-200 text-[#667781]"
+                  title="Delete chat"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2h.293l.853 9.36A2 2 0 007.138 17h5.724a2 2 0 001.992-1.64L15.707 6H16a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zm2.618 4l-.75 8H9.132l-.75-8h3.236z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex items-center justify-between gap-2">
             <p className={`text-sm truncate ${

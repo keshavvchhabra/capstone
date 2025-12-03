@@ -5,7 +5,7 @@ import ConversationList from '../components/chat/ConversationList'
 import MessageBubble from '../components/chat/MessageBubble'
 import NewChatModal from '../components/chat/NewChatModal'
 import ProfileModal from '../components/ProfileModal'
-import { fetchConversations, fetchMessages, deleteMessage } from '../api/chat'
+import { fetchConversations, fetchMessages, deleteMessage, deleteConversation } from '../api/chat'
 import { useAuth } from '../context/AuthContext'
 
 const Dashboard = () => {
@@ -388,6 +388,24 @@ const Dashboard = () => {
     setShowNewChatModal(false)
   }
 
+  const handleDeleteConversation = async (conversation) => {
+    if (!conversation?.id) return
+    try {
+      await deleteConversation(conversation.id)
+      setConversations((previous) =>
+        previous.filter((item) => item.id !== conversation.id)
+      )
+      if (activeConversation?.id === conversation.id) {
+        setActiveConversation(null)
+        setMessages([])
+        setMessagesCursor(null)
+      }
+    } catch (err) {
+      console.error('Failed to delete conversation', err)
+      setError(err.response?.data?.error || 'Unable to delete chat. Please try again.')
+    }
+  }
+
   const handleDeleteMessage = async (messageId) => {
     if (!activeConversation?.id) return
 
@@ -562,6 +580,7 @@ const Dashboard = () => {
                 onSelect={(conversation) => setActiveConversation(conversation)}
                 searchTerm={conversationSearch}
                 currentUserId={user?.id}
+                onDeleteConversation={handleDeleteConversation}
               />
             </>
           )}

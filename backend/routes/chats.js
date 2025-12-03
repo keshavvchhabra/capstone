@@ -197,6 +197,55 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Delete a conversation (only for participants)
+router.delete('/:conversationId', async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user.userId;
+
+    // Ensure the user is a participant in this conversation
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: {
+            userId,
+          },
+        },
+      },
+      include: {
+        participants: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
+    // Delete the conversation; messages and participants cascade via schema
+    await prisma.conversation.delete({
+      where: { id: conversationId },
+    });
+
+    // Emit real-time event so other clients can update
+    const io = req.app.get('io');
+    if (io) {
+      conversation.participants.forEach((participant) => {
+        io.to(`user:${participant.userId}`).emit('conversation:deleted', {
+          conversationId,
+        });
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete conversation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get messages for a conversation with cursor-based pagination
 router.get('/:conversationId/messages', async (req, res) => {
   try {
