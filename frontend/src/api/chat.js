@@ -18,6 +18,12 @@ export const deleteMessage = (conversationId, messageId) =>
 export const deleteConversation = (conversationId) =>
   api.delete(`/api/chats/${conversationId}`)
 
+export const updateMessage = (conversationId, messageId, body) =>
+  api.put(`/api/chats/${conversationId}/messages/${messageId}`, { body })
+
+export const updateConversation = (conversationId, updates) =>
+  api.put(`/api/chats/${conversationId}`, updates)
+
 export const searchPeople = (query) =>
   api.get('/api/users/search', { params: { query } })
 

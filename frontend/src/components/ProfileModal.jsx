@@ -42,19 +42,14 @@ const ProfileModal = ({ isOpen, onClose }) => {
 
     try {
       const trimmedName = name.trim()
-      const formData = new FormData()
+      const payload = {}
 
-      // Backend `/api/profile/me` expects multipart/form-data because of multer,
-      // so we send a FormData payload even though we're only updating the name.
+      // Only send name if it actually changed
       if (trimmedName !== (user?.name || '')) {
-        formData.append('name', trimmedName || '')
+        payload.name = trimmedName || ''
       }
 
-      const response = await api.put('/api/profile/me', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
+      const response = await api.put('/api/profile/me', payload)
 
       updateUser(response.data.user)
       setSuccess('Profile updated successfully')

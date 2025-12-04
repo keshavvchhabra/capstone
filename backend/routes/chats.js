@@ -56,10 +56,10 @@ const transformConversation = (conversation) => {
   };
 };
 
-// Get conversations for current user, with optional search and date filters
+// Get conversations for current user, with optional search and date filters, with cursor-based pagination
 router.get('/', async (req, res) => {
   try {
-    const { search, createdFrom, createdTo } = req.query;
+    const { search, createdFrom, createdTo, cursor } = req.query;
 
     const baseWhere = {
       participants: {
@@ -136,14 +136,28 @@ router.get('/', async (req, res) => {
           }
         : baseWhere;
 
+    const take = 5;
+
     const conversations = await prisma.conversation.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
+      take: take + 1,
+      ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       include: conversationInclude,
     });
 
+    let nextCursor = null;
+    let items = conversations;
+
+    if (conversations.length > take) {
+      const nextItem = conversations[conversations.length - 1];
+      nextCursor = nextItem.id;
+      items = conversations.slice(0, take);
+    }
+
     res.json({
-      conversations: conversations.map(transformConversation),
+      conversations: items.map(transformConversation),
+      nextCursor,
     });
   } catch (error) {
     console.error('Fetch conversations error:', error);
@@ -193,6 +207,68 @@ router.post('/', async (req, res) => {
     res.status(201).json({ conversation: transformed });
   } catch (error) {
     console.error('Create conversation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update conversation (title for group chats)
+router.put('/:conversationId', async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { title } = req.body;
+    const userId = req.user.userId;
+
+    // Ensure user is part of the conversation
+    const membership = await prisma.conversationParticipant.findFirst({
+      where: {
+        conversationId,
+        userId,
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Update conversation title
+    const updatedConversation = await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { title: title?.trim() || null },
+      include: conversationInclude,
+    });
+
+    const transformed = transformConversation(updatedConversation);
+
+    // Get all participants for socket emission
+    const conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId },
+      include: {
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    // Emit real-time event
+    const io = req.app.get('io');
+    if (io && conversation) {
+      const payload = {
+        conversationId,
+        conversation: transformed,
+      };
+
+      // Broadcast to all participants
+      conversation.participants.forEach((participant) => {
+        io.to(`user:${participant.userId}`).emit('conversation:title:updated', payload);
+        io.to(`conversation:${conversationId}`).emit('conversation:title:updated', payload);
+      });
+    }
+
+    res.json({ conversation: transformed });
+  } catch (error) {
+    console.error('Update conversation error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -393,6 +469,105 @@ router.post('/:conversationId/messages', async (req, res) => {
     res.status(201).json({ message });
   } catch (error) {
     console.error('Create message error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update a message (only allowed for the user who sent it)
+router.put('/:conversationId/messages/:messageId', async (req, res) => {
+  try {
+    const { conversationId, messageId } = req.params;
+    const { body } = req.body;
+    const userId = req.user.userId;
+
+    if (!body || !body.trim()) {
+      return res.status(400).json({ error: 'Message body is required' });
+    }
+
+    // Ensure user is part of the conversation
+    const membership = await prisma.conversationParticipant.findFirst({
+      where: {
+        conversationId,
+        userId,
+      },
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Find the message and ensure it belongs to this conversation and user
+    const message = await prisma.message.findFirst({
+      where: {
+        id: messageId,
+        conversationId,
+      },
+      select: {
+        id: true,
+        senderId: true,
+      },
+    });
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    if (message.senderId !== userId) {
+      return res.status(403).json({ error: 'You can only edit your own messages' });
+    }
+
+    // Update the message
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: { body: body.trim() },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        sender: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    // Get conversation participants for socket emission
+    const conversation = await prisma.conversation.findFirst({
+      where: { id: conversationId },
+      include: {
+        participants: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    // Emit real-time event
+    const io = req.app.get('io');
+    if (io) {
+      const payload = {
+        message: updatedMessage,
+        conversationId,
+      };
+
+      // Broadcast to conversation room
+      io.to(`conversation:${conversationId}`).emit('message:updated', payload);
+
+      // Also notify individual user rooms
+      if (conversation) {
+        conversation.participants.forEach((participant) => {
+          io.to(`user:${participant.userId}`).emit('message:updated', payload);
+        });
+      }
+    }
+
+    res.json({ message: updatedMessage });
+  } catch (error) {
+    console.error('Update message error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

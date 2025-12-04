@@ -144,7 +144,8 @@ app.set('io', io);
 // Middleware
 app.use(
   cors({
-    origin: 'https://capstone-topaz-one.vercel.app',
+    origin: ['https://capstone-topaz-one.vercel.app',
+    'http://localhost:3000'],
     credentials: true,
   })
 );

@@ -43,6 +43,8 @@ const ConversationList = memo(({
   // searchTerm is now handled in the backend; we keep the prop for compatibility
   currentUserId,
   onDeleteConversation,
+  hasMoreConversations,
+  onLoadMore,
 }) => {
   if (!conversations.length) {
     return (
@@ -100,6 +102,18 @@ const ConversationList = memo(({
         />
       ))}
       </ul>
+      
+      {hasMoreConversations && onLoadMore && (
+        <div className="px-4 py-3 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            className="text-sm text-[#25D366] hover:text-[#20BA5A] font-medium"
+          >
+            Load more conversations
+          </button>
+        </div>
+      )}
     </div>
   )
 })

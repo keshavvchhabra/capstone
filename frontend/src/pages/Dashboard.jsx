@@ -5,7 +5,7 @@ import ConversationList from '../components/chat/ConversationList'
 import MessageBubble from '../components/chat/MessageBubble'
 import NewChatModal from '../components/chat/NewChatModal'
 import ProfileModal from '../components/ProfileModal'
-import { fetchConversations, fetchMessages, deleteMessage, deleteConversation } from '../api/chat'
+import { fetchConversations, fetchMessages, deleteMessage, deleteConversation, updateMessage, updateConversation } from '../api/chat'
 import { useAuth } from '../context/AuthContext'
 
 const Dashboard = () => {
@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [activeConversation, setActiveConversation] = useState(null)
   const [conversationSearch, setConversationSearch] = useState('')
   const [conversationDateFilter, setConversationDateFilter] = useState('all')
+  const [conversationsCursor, setConversationsCursor] = useState(null)
   const [messages, setMessages] = useState([])
   const [messagesCursor, setMessagesCursor] = useState(null)
   const [isLoadingConversations, setIsLoadingConversations] = useState(true)
@@ -23,6 +24,8 @@ const Dashboard = () => {
   const [composerValue, setComposerValue] = useState('')
   const [showNewChatModal, setShowNewChatModal] = useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [isEditingGroupName, setIsEditingGroupName] = useState(false)
+  const [groupNameValue, setGroupNameValue] = useState('')
   const [error, setError] = useState('')
   const endOfMessagesRef = useRef(null)
   const socketRef = useRef(null)
@@ -35,10 +38,12 @@ const Dashboard = () => {
     navigate('/login')
   }
 
-  // Load conversations, optionally with a search term and date filter handled in the backend
-  const loadConversations = useCallback(async (searchTerm, dateFilter) => {
+  // Load conversations, optionally with a search term and date filter handled in the backend, with pagination
+  const loadConversations = useCallback(async (searchTerm, dateFilter, cursor = null, append = false) => {
     try {
-      setIsLoadingConversations(true)
+      if (!append) {
+        setIsLoadingConversations(true)
+      }
       const params = {}
       if (searchTerm && searchTerm.trim()) {
         params.search = searchTerm.trim()
@@ -64,16 +69,31 @@ const Dashboard = () => {
           params.createdTo = now.toISOString()
         }
       }
+      if (cursor) {
+        params.cursor = cursor
+      }
       const response = await fetchConversations(params)
       const sorted = response.data.conversations.sort(
         (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
       )
       
-      setConversations(sorted)
+      if (append) {
+        setConversations((prev) => {
+          const combined = [...prev, ...sorted]
+          const unique = combined.filter((c, index, self) => 
+            index === self.findIndex((t) => t.id === c.id)
+          )
+          return unique.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        })
+      } else {
+        setConversations(sorted)
+      }
+      
+      setConversationsCursor(response.data.nextCursor || null)
       
       // Only auto-select a conversation once on initial load
       const currentActive = activeConversationRef.current
-      if (!currentActive && sorted.length) {
+      if (!currentActive && !append && sorted.length) {
         setActiveConversation(sorted[0])
       }
     } catch (err) {
@@ -157,8 +177,12 @@ const Dashboard = () => {
     if (!activeConversation) {
       setMessages([])
       setMessagesCursor(null)
+      setIsEditingGroupName(false)
+      setGroupNameValue('')
       return
     }
+    setIsEditingGroupName(false)
+    setGroupNameValue(activeConversation.title || '')
     loadMessages(activeConversation.id, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeConversation?.id])
@@ -267,6 +291,34 @@ const Dashboard = () => {
 
     socket.on('conversation:updated', () => {
       // Conversation updated, but we don't need to reload
+    })
+
+    socket.on('message:updated', (payload) => {
+      const { message, conversationId } = payload
+      const currentActive = activeConversationRef.current
+
+      if (currentActive && conversationId === currentActive.id) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === message.id ? message : msg))
+        )
+      }
+    })
+
+    socket.on('conversation:title:updated', (payload) => {
+      const { conversationId, conversation } = payload
+      const currentActive = activeConversationRef.current
+
+      if (currentActive && conversationId === currentActive.id) {
+        setActiveConversation((prev) => ({
+          ...prev,
+          title: conversation.title,
+        }))
+      }
+
+      const updateFn = updateConversationInListRef.current
+      if (updateFn) {
+        updateFn(conversationId, { title: conversation.title })
+      }
     })
 
     return () => {
@@ -406,6 +458,22 @@ const Dashboard = () => {
     }
   }
 
+  const handleUpdateMessage = async (message, newBody) => {
+    if (!activeConversation?.id) return
+
+    try {
+      const response = await updateMessage(activeConversation.id, message.id, newBody)
+      // Update message in local state
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === message.id ? response.data.message : msg))
+      )
+    } catch (err) {
+      console.error('Failed to update message', err)
+      setError(err.response?.data?.error || 'Unable to update message. Please try again.')
+      throw err
+    }
+  }
+
   const handleDeleteMessage = async (messageId) => {
     if (!activeConversation?.id) return
 
@@ -427,6 +495,30 @@ const Dashboard = () => {
       )
       // Optionally, reload messages for this conversation to restore state
       loadMessages(conversationId, { replace: true })
+    }
+  }
+
+  const handleUpdateGroupName = async () => {
+    if (!activeConversation?.id || !activeConversation?.isGroup) return
+
+    const trimmedName = groupNameValue.trim()
+    if (!trimmedName) {
+      setError('Group name cannot be empty')
+      return
+    }
+
+    try {
+      const response = await updateConversation(activeConversation.id, { title: trimmedName })
+      setActiveConversation((prev) => ({
+        ...prev,
+        title: response.data.conversation.title,
+      }))
+      updateConversationInList(activeConversation.id, { title: response.data.conversation.title })
+      setIsEditingGroupName(false)
+      setGroupNameValue('')
+    } catch (err) {
+      console.error('Failed to update group name', err)
+      setError(err.response?.data?.error || 'Unable to update group name. Please try again.')
     }
   }
 
@@ -581,6 +673,8 @@ const Dashboard = () => {
                 searchTerm={conversationSearch}
                 currentUserId={user?.id}
                 onDeleteConversation={handleDeleteConversation}
+                hasMoreConversations={!!conversationsCursor}
+                onLoadMore={() => loadConversations(conversationSearch, conversationDateFilter, conversationsCursor, true)}
               />
             </>
           )}
@@ -608,14 +702,69 @@ const Dashboard = () => {
                     )
                   })()
                 )}
-                <div>
-                  <p className="font-semibold text-[#111B21]">
-                    {activeConversation.title || activeConversationSubtitle || 'Conversation'}
-                  </p>
+                <div className="flex-1">
+                  {isEditingGroupName && activeConversation.isGroup ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={groupNameValue}
+                        onChange={(e) => setGroupNameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleUpdateGroupName()
+                          } else if (e.key === 'Escape') {
+                            setIsEditingGroupName(false)
+                            setGroupNameValue(activeConversation.title || '')
+                          }
+                        }}
+                        className="px-2 py-1 text-sm font-semibold text-[#111B21] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleUpdateGroupName}
+                        className="p-1 text-[#25D366] hover:text-[#20BA5A]"
+                        title="Save"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingGroupName(false)
+                          setGroupNameValue(activeConversation.title || '')
+                        }}
+                        className="p-1 text-[#667781] hover:text-[#111B21]"
+                        title="Cancel"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="font-semibold text-[#111B21]">
+                      {activeConversation.title || activeConversationSubtitle || 'Conversation'}
+                    </p>
+                  )}
                   <p className="text-xs text-[#667781]">{activeConversationSubtitle}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                {activeConversation.isGroup && !isEditingGroupName && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingGroupName(true)}
+                    className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                    title="Edit group name"
+                  >
+                    <svg className="w-5 h-5 text-[#54656F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                )}
                 <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
                   <svg className="w-5 h-5 text-[#54656F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -675,6 +824,7 @@ const Dashboard = () => {
                             ? () => handleDeleteMessage(item.message.id)
                             : undefined
                         }
+                        onUpdate={isOwn ? handleUpdateMessage : undefined}
                       />
                     )
                   })}
